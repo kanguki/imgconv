@@ -2,6 +2,7 @@ package fmtconv
 
 import (
 	"fmt"
+	"golang.org/x/image/webp"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -14,20 +15,16 @@ const (
 	PNG  Format = "png"
 	JPEG Format = "jpeg"
 	JPG  Format = "jpg"
+	WEBP Format = "webp"
 )
 
 func Convert(inPath string, outFmtExpected Format) (outPath string, err error) {
 	if sameFormat(inPath, outFmtExpected) {
 		return "", fmt.Errorf("file is already in expected format")
 	}
-	in, err := os.Open(inPath)
+	rawImg, err := getRawImage(inPath)
 	if err != nil {
-		return "", fmt.Errorf("open file %v %v", in, err)
-	}
-	defer in.Close()
-	rawImg, _, err := image.Decode(in)
-	if err != nil {
-		return "", fmt.Errorf("image.Decode %v", err)
+		return "", fmt.Errorf("getRawImage %v %v", inPath, err)
 	}
 	outFile := toOutFileName(inPath, outFmtExpected)
 	f, err := os.Create(outFile)
@@ -55,19 +52,40 @@ func Convert(inPath string, outFmtExpected Format) (outPath string, err error) {
 		}
 		return outFile, nil
 	default:
-		return "", fmt.Errorf("%v is not supported", outFmtExpected)
+		return "", fmt.Errorf("output %v is not supported", outFmtExpected)
 	}
+}
+
+func getRawImage(inPath string) (image.Image, error) {
+	in, err := os.Open(inPath)
+	if err != nil {
+		return nil, fmt.Errorf("open file %v %v", in, err)
+	}
+	defer in.Close()
+	inFmt := extractImgFormat(inPath)
+	switch inFmt {
+	case WEBP:
+		return webp.Decode(in)
+	case JPEG, JPG, PNG:
+		img, _, err := image.Decode(in)
+		return img, err
+	default:
+		return nil, fmt.Errorf("not a supported file format")
+	}
+}
+
+func extractImgFormat(imageFilePath string) Format {
+	for i := len(imageFilePath) - 1; i >= 0; i-- {
+		if string(imageFilePath[i]) == "." {
+			return Format(imageFilePath[i+1:])
+		}
+	}
+	return ""
 }
 
 //sameFormat check if input file and expected output format has the same file extension already
 func sameFormat(inPath string, outExpectedFmt Format) bool {
-	var inFmt Format
-	for i := len(inPath) - 1; i >= 0; i-- {
-		if string(inPath[i]) == "." {
-			inFmt = Format(inPath[i+1:])
-			break
-		}
-	}
+	inFmt := extractImgFormat(inPath)
 	switch Format(inFmt) {
 	case JPEG, JPG:
 		return outExpectedFmt == JPEG || outExpectedFmt == JPG

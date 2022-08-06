@@ -45,16 +45,19 @@ const (
 	fgWhite
 )
 
+const supportedInFmt string = "jpg | jpeg | png | web"
+const supportedOutFmt string = "jpg | jpeg | png"
+
 func printGuide() {
-	fmt.Print(`
+	fmt.Printf(`
 NAME
 	imgconv - convert image from one format to another
 SYNOPSIS:
 	go run main.go [in] [out_exprected]
 DESCRIPTION:
-	[in]: first argument. Must be an absolute path. Supported formats are: jpg | jpeg | png
-	[out_expected]: out format expected. Supported values are: jpg | jpeg | png
+	[in]: first argument. Must be an absolute path. Supported formats are: %v
+	[out_expected]: out format expected. Supported values are: %v
 OUTPUT SUMMARY:
 	an image with same name and expected format in the same dir as the input image 
-`)
+`, supportedInFmt, supportedOutFmt)
 }
